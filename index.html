@@ -579,14 +579,24 @@ window.saveScore = async function() {
   btn.textContent = 'Lagrer...';
   btn.disabled = true;
 
+  // Lagre til Firebase
   try {
     await fbSaveScore(name, correct, time);
   } catch(e) {
     console.error('Firebase save error:', e);
   }
 
-  // Legg til i lokal cache med en gang – ikke vent på re-fetch fra Firestore
-  cachedScores.push(entry);
+  // Hent fersk liste fra Firebase etter lagring
+  // Legg uansett til ny post lokalt i tilfelle Firestore er treg
+  try {
+    cachedScores = await fbGetScores();
+  } catch(e) {
+    console.error('Firebase read error:', e);
+  }
+  const alreadyIn = cachedScores.some(s =>
+    s.name === entry.name && s.correct === entry.correct && Math.abs(s.time - entry.time) < 1
+  );
+  if (!alreadyIn) cachedScores.push(entry);
   cachedScores.sort((a, b) => b.correct - a.correct || a.time - b.time);
   cachedScores = cachedScores.slice(0, 10);
 
