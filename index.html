@@ -323,6 +323,8 @@
   <span class="speed-dot" id="dot6"></span>
   <span class="speed-dot" id="dot7"></span>
   <span class="speed-dot" id="dot8"></span>
+  <span class="speed-dot" id="dot9"></span>
+  <span class="speed-dot" id="dot10"></span>
 </div>
 
 <!-- START SCREEN -->
@@ -541,7 +543,10 @@ function handleAnswer(val, btn) {
     correctVal.textContent = solvedCount;
 
     if (solvedCount % 3 === 0) {
-      growSpeed = baseGrowSpeed * (1 + (solvedCount / 3) * 0.35);
+      const level = Math.min(Math.floor(solvedCount / 3), 9);
+      // Nivå 1-4: rolig oppbygging, 5-8: merkbart raskere, 9-10: ekstremt
+      const speedTable = [1, 1.5, 2.2, 3.2, 5.5, 9.0, 14.0, 21.0, 30.0, 42.0];
+      growSpeed = baseGrowSpeed * speedTable[level];
       updateSpeedDots();
     }
 
@@ -557,8 +562,8 @@ function handleAnswer(val, btn) {
 }
 
 function updateSpeedDots() {
-  const level = Math.min(Math.floor(solvedCount / 3), 7);
-  for (let i = 1; i <= 8; i++) {
+  const level = Math.min(Math.floor(solvedCount / 3), 9);
+  for (let i = 1; i <= 10; i++) {
     const el = document.getElementById('dot' + i);
     if (el) el.classList.toggle('active', i <= level + 1);
   }
