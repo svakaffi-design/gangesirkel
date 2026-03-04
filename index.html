@@ -356,6 +356,7 @@
   <div class="overlay-box" style="max-width:520px;">
     <h1 style="color:var(--gold);">🏆 Highscore</h1>
     <p class="subtitle">Flest riktige svar vinner!</p>
+    <div id="hs-debug" style="display:none;font-size:0.8rem;padding:10px;margin-bottom:10px;background:rgba(255,255,255,0.05);border-radius:8px;color:#ffd166;"></div>
     <div id="hs-table-container"></div>
     <button class="btn-primary" onclick="restartGame()">SPILL IGJEN</button>
   </div>
@@ -584,20 +585,34 @@ window.saveScore = async function() {
   btn.textContent = 'Lagrer...';
   btn.disabled = true;
 
+  const debugEl = document.getElementById('hs-debug');
+
   // 1. Lagre til Firebase
+  let saveOk = false;
   try {
     await fbSaveScore(name, correct, time);
+    saveOk = true;
   } catch(e) {
+    debugEl.textContent = '❌ Lagring feilet: ' + e.message;
+    debugEl.style.display = 'block';
     console.error('Firebase save error:', e);
   }
 
-  // 2. Hent fersk liste — hvis ny post mangler, legg den til lokalt
+  // 2. Hent fersk liste
   let scores = [];
   try {
     scores = await fbGetScores();
+    debugEl.textContent = saveOk
+      ? '✅ Lagret! Hentet ' + scores.length + ' poster fra Firebase.'
+      : '⚠️ Lagring feilet, men hentet ' + scores.length + ' fra Firebase.';
+    debugEl.style.display = 'block';
   } catch(e) {
+    debugEl.textContent = '❌ Henting feilet: ' + e.message;
+    debugEl.style.display = 'block';
     console.error('Firebase read error:', e);
   }
+
+  // Legg til lokalt hvis mangler
   const alreadyIn = scores.some(s =>
     s.name === entry.name && s.correct === entry.correct && Math.abs(s.time - entry.time) < 2
   );
