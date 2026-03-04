@@ -582,7 +582,15 @@ window.saveScore = async function() {
     console.error('Firebase save error:', e);
   }
 
-  const scores = await fbGetScores().catch(() => []);
+  // Firestore kan ha forsinkelse – fletter inn ny post lokalt
+  let scores = await fbGetScores().catch(() => []);
+  const alreadyIn = scores.some(s =>
+    s.name === entry.name && s.correct === entry.correct && Math.abs(s.time - entry.time) < 0.5
+  );
+  if (!alreadyIn) scores.push(entry);
+  scores.sort((a, b) => b.correct - a.correct || a.time - b.time);
+  scores = scores.slice(0, 10);
+
   document.getElementById('gameover-screen').style.display = 'none';
   document.getElementById('hs-table-container').innerHTML = renderTable(scores, entry);
   document.getElementById('highscore-screen').style.display = 'flex';
