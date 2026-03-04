@@ -438,8 +438,11 @@ const answersEl = document.getElementById('answers');
 const timeVal = document.getElementById('time-val');
 const correctVal = document.getElementById('correct-val');
 
-// ---- LOAD SCORES ON START SCREEN ----
+// ---- CACHED SCORES (loaded once at startup) ----
+let cachedScores = [];
+
 fbGetScores().then(scores => {
+  cachedScores = scores;
   if (!scores.length) return;
   document.getElementById('start-highscore').innerHTML =
     '<p style="font-size:0.8rem;opacity:0.5;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">Tidligere rekorder</p>' +
@@ -576,36 +579,19 @@ window.saveScore = async function() {
   btn.textContent = 'Lagrer...';
   btn.disabled = true;
 
-  let saveError = null;
   try {
     await fbSaveScore(name, correct, time);
   } catch(e) {
-    saveError = e;
     console.error('Firebase save error:', e);
   }
 
-  let scores = [];
-  try {
-    scores = await fbGetScores();
-  } catch(e) {
-    console.error('Firebase read error:', e);
-  }
-
-  // Alltid flett inn ny post lokalt uansett Firebase-status
-  const alreadyIn = scores.some(s =>
-    s.name === entry.name && s.correct === entry.correct && Math.abs(s.time - entry.time) < 0.5
-  );
-  if (!alreadyIn) scores.push(entry);
-  scores.sort((a, b) => b.correct - a.correct || a.time - b.time);
-  scores = scores.slice(0, 10);
+  // Legg til i lokal cache med en gang – ikke vent på re-fetch fra Firestore
+  cachedScores.push(entry);
+  cachedScores.sort((a, b) => b.correct - a.correct || a.time - b.time);
+  cachedScores = cachedScores.slice(0, 10);
 
   document.getElementById('gameover-screen').style.display = 'none';
-
-  let extra = '';
-  if (saveError) {
-    extra = '<p style="color:#ff6b6b;font-size:0.85rem;margin-bottom:12px;">⚠️ Kunne ikke koble til Firebase. Sjekk Firestore-regler.<br><small style="opacity:0.6">' + saveError.message + '</small></p>';
-  }
-  document.getElementById('hs-table-container').innerHTML = extra + renderTable(scores, entry);
+  document.getElementById('hs-table-container').innerHTML = renderTable(cachedScores, entry);
   document.getElementById('highscore-screen').style.display = 'flex';
 
   btn.textContent = 'LAGRE & SE HIGHSCORE';
