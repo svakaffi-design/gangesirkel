@@ -438,9 +438,10 @@ const answersEl = document.getElementById('answers');
 const timeVal = document.getElementById('time-val');
 const correctVal = document.getElementById('correct-val');
 
-// ---- CACHED SCORES (loaded once at startup) ----
+// ---- LOAD SCORES ON START SCREEN ----
 let cachedScores = [];
 
+// Last highscores til startskjerm
 fbGetScores().then(scores => {
   cachedScores = scores;
   if (!scores.length) return;
@@ -573,39 +574,39 @@ function gameOver(reason) {
 window.saveScore = async function() {
   const name = document.getElementById('player-name').value.trim() || 'Anonym';
   const { correct, time } = window._lastScore;
-  const entry = { name, correct, time };
 
   const btn = document.querySelector('#gameover-screen .btn-primary');
   btn.textContent = 'Lagrer...';
   btn.disabled = true;
 
-  // Lagre til Firebase
+  // 1. Lagre til Firebase
   try {
     await fbSaveScore(name, correct, time);
   } catch(e) {
     console.error('Firebase save error:', e);
   }
 
-  // Hent fersk liste fra Firebase etter lagring
-  // Legg uansett til ny post lokalt i tilfelle Firestore er treg
+  // 2. Hent fersk liste fra Firebase (separat steg, som i alfabetslangen)
+  await loadHighscores();
+
+  btn.textContent = 'LAGRE & SE HIGHSCORE';
+  btn.disabled = false;
+
+  document.getElementById('gameover-screen').style.display = 'none';
+  document.getElementById('highscore-screen').style.display = 'flex';
+}
+
+async function loadHighscores(newEntry) {
+  const container = document.getElementById('hs-table-container');
+  container.innerHTML = '<p style="opacity:0.5;text-align:center;padding:16px;">Laster...</p>';
+
   try {
     cachedScores = await fbGetScores();
   } catch(e) {
     console.error('Firebase read error:', e);
   }
-  const alreadyIn = cachedScores.some(s =>
-    s.name === entry.name && s.correct === entry.correct && Math.abs(s.time - entry.time) < 1
-  );
-  if (!alreadyIn) cachedScores.push(entry);
-  cachedScores.sort((a, b) => b.correct - a.correct || a.time - b.time);
-  cachedScores = cachedScores.slice(0, 10);
 
-  document.getElementById('gameover-screen').style.display = 'none';
-  document.getElementById('hs-table-container').innerHTML = renderTable(cachedScores, entry);
-  document.getElementById('highscore-screen').style.display = 'flex';
-
-  btn.textContent = 'LAGRE & SE HIGHSCORE';
-  btn.disabled = false;
+  container.innerHTML = renderTable(cachedScores, newEntry || null);
 }
 
 window.restartGame = function() {
