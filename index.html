@@ -383,9 +383,13 @@ async function fbSaveScore(name, correct, time) {
 }
 
 async function fbGetScores() {
-  const q = query(collection(db, "highscores"), orderBy("correct", "desc"), orderBy("time", "asc"), limit(10));
+  // Enkel query med én orderBy – unngår krav om sammensatt Firestore-index
+  const q = query(collection(db, "highscores"), orderBy("correct", "desc"), limit(20));
   const snap = await getDocs(q);
-  return snap.docs.map(d => d.data());
+  const docs = snap.docs.map(d => d.data());
+  // Sorter videre lokalt på tid som tiebreaker
+  docs.sort((a, b) => b.correct - a.correct || a.time - b.time);
+  return docs.slice(0, 10);
 }
 
 // ---- HELPERS ----
@@ -574,6 +578,7 @@ function gameOver(reason) {
 window.saveScore = async function() {
   const name = document.getElementById('player-name').value.trim() || 'Anonym';
   const { correct, time } = window._lastScore;
+  const entry = { name, correct, time };
 
   const btn = document.querySelector('#gameover-screen .btn-primary');
   btn.textContent = 'Lagrer...';
@@ -586,27 +591,40 @@ window.saveScore = async function() {
     console.error('Firebase save error:', e);
   }
 
-  // 2. Hent fersk liste fra Firebase (separat steg, som i alfabetslangen)
-  await loadHighscores();
+  // 2. Hent fersk liste — hvis ny post mangler, legg den til lokalt
+  let scores = [];
+  try {
+    scores = await fbGetScores();
+  } catch(e) {
+    console.error('Firebase read error:', e);
+  }
+  const alreadyIn = scores.some(s =>
+    s.name === entry.name && s.correct === entry.correct && Math.abs(s.time - entry.time) < 2
+  );
+  if (!alreadyIn) {
+    scores.push(entry);
+    scores.sort((a, b) => b.correct - a.correct || a.time - b.time);
+    scores = scores.slice(0, 10);
+  }
+  cachedScores = scores;
+
+  document.getElementById('gameover-screen').style.display = 'none';
+  document.getElementById('hs-table-container').innerHTML = renderTable(cachedScores, entry);
+  document.getElementById('highscore-screen').style.display = 'flex';
 
   btn.textContent = 'LAGRE & SE HIGHSCORE';
   btn.disabled = false;
-
-  document.getElementById('gameover-screen').style.display = 'none';
-  document.getElementById('highscore-screen').style.display = 'flex';
 }
 
-async function loadHighscores(newEntry) {
+async function loadHighscores() {
   const container = document.getElementById('hs-table-container');
   container.innerHTML = '<p style="opacity:0.5;text-align:center;padding:16px;">Laster...</p>';
-
   try {
     cachedScores = await fbGetScores();
   } catch(e) {
     console.error('Firebase read error:', e);
   }
-
-  container.innerHTML = renderTable(cachedScores, newEntry || null);
+  container.innerHTML = renderTable(cachedScores, null);
 }
 
 window.restartGame = function() {
