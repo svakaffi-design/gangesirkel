@@ -320,6 +320,9 @@
   <span class="speed-dot" id="dot3"></span>
   <span class="speed-dot" id="dot4"></span>
   <span class="speed-dot" id="dot5"></span>
+  <span class="speed-dot" id="dot6"></span>
+  <span class="speed-dot" id="dot7"></span>
+  <span class="speed-dot" id="dot8"></span>
 </div>
 
 <!-- START SCREEN -->
@@ -538,7 +541,7 @@ function handleAnswer(val, btn) {
     correctVal.textContent = solvedCount;
 
     if (solvedCount % 3 === 0) {
-      growSpeed = baseGrowSpeed * (1 + (solvedCount / 3) * 0.55);
+      growSpeed = baseGrowSpeed * (1 + (solvedCount / 3) * 0.35);
       updateSpeedDots();
     }
 
@@ -554,8 +557,8 @@ function handleAnswer(val, btn) {
 }
 
 function updateSpeedDots() {
-  const level = Math.min(Math.floor(solvedCount / 3), 4);
-  for (let i = 1; i <= 5; i++) {
+  const level = Math.min(Math.floor(solvedCount / 3), 7);
+  for (let i = 1; i <= 8; i++) {
     document.getElementById('dot' + i).classList.toggle('active', i <= level + 1);
   }
 }
