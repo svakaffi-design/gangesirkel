@@ -300,8 +300,7 @@
 <div class="stars" id="stars"></div>
 
 <!-- Timer & Score -->
-<div id="timer"><span>TID</span><span id="time-val">0.0s</span></div>
-<div id="score-display"><span>RIKTIGE</span><span id="correct-val">0</span></div>
+<div id="timer"><span>POENG</span><span id="score-val">0</span></div>
 
 <!-- Growing Red Circle -->
 <div id="circle"></div>
@@ -349,8 +348,7 @@
   <div class="overlay-box">
     <h1>💥 Game Over</h1>
     <p class="game-over-reason" id="gameover-reason">Du svarte feil!</p>
-    <div class="stat" id="go-time">0.0s <span>total tid</span></div>
-    <div class="stat" id="go-correct">0 <span>riktige svar</span></div>
+    <div class="stat" id="go-score">0 <span>poeng</span></div>
     <input class="name-input" id="player-name" placeholder="Skriv inn navn..." maxlength="16" />
     <button class="btn-primary" onclick="saveScore()">LAGRE & SE HIGHSCORE</button>
   </div>
@@ -384,17 +382,16 @@ const firebaseConfig = {
 const fbApp = initializeApp(firebaseConfig);
 const db = getFirestore(fbApp);
 
-async function fbSaveScore(name, correct, time) {
-  await addDoc(collection(db, "highscores"), { name, correct, time, ts: Date.now() });
+async function fbSaveScore(name, score, correct, time) {
+  await addDoc(collection(db, "highscores"), { name, score, correct, time, ts: Date.now() });
 }
 
 async function fbGetScores() {
   // Enkel query med én orderBy – unngår krav om sammensatt Firestore-index
-  const q = query(collection(db, "highscores"), orderBy("correct", "desc"), limit(20));
+  const q = query(collection(db, "highscores"), orderBy("score", "desc"), limit(20));
   const snap = await getDocs(q);
   const docs = snap.docs.map(d => d.data());
-  // Sorter videre lokalt på tid som tiebreaker
-  docs.sort((a, b) => b.correct - a.correct || a.time - b.time);
+  docs.sort((a, b) => (b.score || 0) - (a.score || 0));
   return docs.slice(0, 10);
 }
 
@@ -405,14 +402,13 @@ function escHtml(s) {
 
 function renderTable(scores, newEntry) {
   if (!scores.length) return '<p style="opacity:0.5;text-align:center;padding:16px;">Ingen rekorder ennå!</p>';
-  let html = '<table class="hs-table"><tr><th>#</th><th>Navn</th><th>Riktige</th><th>Tid</th></tr>';
+  let html = '<table class="hs-table"><tr><th>#</th><th>Navn</th><th>Poeng</th></tr>';
   scores.forEach((s, i) => {
-    const isNew = newEntry && s.name === newEntry.name && s.correct === newEntry.correct && Math.abs(s.time - newEntry.time) < 0.5;
+    const isNew = newEntry && s.name === newEntry.name && s.score === newEntry.score;
     html += `<tr class="${isNew ? 'new-entry' : ''}">
       <td class="rank">${i+1}</td>
       <td class="hs-name">${escHtml(s.name)}${isNew ? ' ⭐' : ''}</td>
-      <td class="hs-correct">${s.correct}</td>
-      <td class="hs-time">${parseFloat(s.time).toFixed(1)}s</td>
+      <td class="hs-time">${s.score || 0}</td>
     </tr>`;
   });
   return html + '</table>';
@@ -436,6 +432,7 @@ let startTime = 0;
 let timerInterval = null;
 let correctAnswer = 0;
 let solvedCount = 0;
+let totalScore = 0;
 let currentRadius = 0;
 let baseGrowSpeed = 0.15;
 let growSpeed = baseGrowSpeed;
@@ -445,8 +442,7 @@ let animFrame = null;
 const circle = document.getElementById('circle');
 const questionEl = document.getElementById('question');
 const answersEl = document.getElementById('answers');
-const timeVal = document.getElementById('time-val');
-const correctVal = document.getElementById('correct-val');
+const scoreVal = document.getElementById('score-val');
 
 // ---- LOAD SCORES ON START SCREEN ----
 let cachedScores = [];
@@ -469,8 +465,8 @@ window.startGame = function() {
   solvedCount = 0;
   currentRadius = 0;
   growSpeed = baseGrowSpeed;
-  correctVal.textContent = '0';
-  timeVal.textContent = '0.0s';
+  scoreVal.textContent = '0';
+  totalScore = 0;
 
   updateSpeedDots();
   circle.style.width = '0px';
@@ -490,7 +486,9 @@ window.startGame = function() {
 
 function updateTimer() {
   if (!gameActive) return;
-  timeVal.textContent = ((performance.now() - startTime) / 1000).toFixed(1) + 's';
+  const elapsed = Math.floor((performance.now() - startTime) / 1000);
+  totalScore = elapsed * 3 + solvedCount * 10;
+  scoreVal.textContent = totalScore;
 }
 
 function growLoop(now) {
@@ -540,7 +538,6 @@ function handleAnswer(val, btn) {
   if (val === correctAnswer) {
     btn.classList.add('correct');
     solvedCount++;
-    correctVal.textContent = solvedCount;
 
     if (solvedCount % 3 === 0) {
       const level = Math.min(Math.floor(solvedCount / 3), 9);
@@ -577,18 +574,18 @@ function gameOver(reason) {
 
   const elapsed = (performance.now() - startTime) / 1000;
   document.getElementById('gameover-reason').textContent = reason;
-  document.getElementById('go-time').innerHTML = `${elapsed.toFixed(1)}s <span>total tid</span>`;
-  document.getElementById('go-correct').innerHTML = `${solvedCount} <span>riktige svar</span>`;
+  const finalScore = Math.floor(elapsed * 3) + solvedCount * 10;
+  document.getElementById('go-score').innerHTML = `${finalScore} <span>poeng</span>`;
   document.getElementById('player-name').value = '';
   document.getElementById('gameover-screen').style.display = 'flex';
 
-  window._lastScore = { time: elapsed, correct: solvedCount };
+  window._lastScore = { score: finalScore, correct: solvedCount, time: elapsed };
 }
 
 window.saveScore = async function() {
   const name = document.getElementById('player-name').value.trim() || 'Anonym';
-  const { correct, time } = window._lastScore;
-  const entry = { name, correct, time };
+  const { score, correct, time } = window._lastScore;
+  const entry = { name, score, correct, time };
 
   const btn = document.querySelector('#gameover-screen .btn-primary');
   btn.textContent = 'Lagrer...';
@@ -599,7 +596,7 @@ window.saveScore = async function() {
   // 1. Lagre til Firebase
   let saveOk = false;
   try {
-    await fbSaveScore(name, correct, time);
+    await fbSaveScore(name, score, correct, time);
     saveOk = true;
   } catch(e) {
     debugEl.textContent = '❌ Lagring feilet: ' + e.message;
@@ -623,11 +620,11 @@ window.saveScore = async function() {
 
   // Legg til lokalt hvis mangler
   const alreadyIn = scores.some(s =>
-    s.name === entry.name && s.correct === entry.correct && Math.abs(s.time - entry.time) < 2
+    s.name === entry.name && s.score === entry.score
   );
   if (!alreadyIn) {
     scores.push(entry);
-    scores.sort((a, b) => b.correct - a.correct || a.time - b.time);
+    scores.sort((a, b) => (b.score || 0) - (a.score || 0));
     scores = scores.slice(0, 10);
   }
   cachedScores = scores;
