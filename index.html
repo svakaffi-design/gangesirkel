@@ -576,14 +576,22 @@ window.saveScore = async function() {
   btn.textContent = 'Lagrer...';
   btn.disabled = true;
 
+  let saveError = null;
   try {
     await fbSaveScore(name, correct, time);
   } catch(e) {
+    saveError = e;
     console.error('Firebase save error:', e);
   }
 
-  // Firestore kan ha forsinkelse – fletter inn ny post lokalt
-  let scores = await fbGetScores().catch(() => []);
+  let scores = [];
+  try {
+    scores = await fbGetScores();
+  } catch(e) {
+    console.error('Firebase read error:', e);
+  }
+
+  // Alltid flett inn ny post lokalt uansett Firebase-status
   const alreadyIn = scores.some(s =>
     s.name === entry.name && s.correct === entry.correct && Math.abs(s.time - entry.time) < 0.5
   );
@@ -592,7 +600,12 @@ window.saveScore = async function() {
   scores = scores.slice(0, 10);
 
   document.getElementById('gameover-screen').style.display = 'none';
-  document.getElementById('hs-table-container').innerHTML = renderTable(scores, entry);
+
+  let extra = '';
+  if (saveError) {
+    extra = '<p style="color:#ff6b6b;font-size:0.85rem;margin-bottom:12px;">⚠️ Kunne ikke koble til Firebase. Sjekk Firestore-regler.<br><small style="opacity:0.6">' + saveError.message + '</small></p>';
+  }
+  document.getElementById('hs-table-container').innerHTML = extra + renderTable(scores, entry);
   document.getElementById('highscore-screen').style.display = 'flex';
 
   btn.textContent = 'LAGRE & SE HIGHSCORE';
