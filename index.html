@@ -559,7 +559,8 @@ function handleAnswer(val, btn) {
 function updateSpeedDots() {
   const level = Math.min(Math.floor(solvedCount / 3), 7);
   for (let i = 1; i <= 8; i++) {
-    document.getElementById('dot' + i).classList.toggle('active', i <= level + 1);
+    const el = document.getElementById('dot' + i);
+    if (el) el.classList.toggle('active', i <= level + 1);
   }
 }
 
