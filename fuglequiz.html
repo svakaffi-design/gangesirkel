@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fuglequiz</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --sky: #0d1b2a;
+    --sky2: #1b2d40;
+    --dawn: #e8c89a;
+    --gold: #d4a853;
+    --leaf: #3d6b4f;
+    --leaf2: #5a9e72;
+    --bark: #6b4c2a;
+    --cream: #f5edd8;
+    --red: #c0392b;
+    --white: #fefcf6;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--sky);
+    color: var(--cream);
+    font-family: 'Crimson Pro', Georgia, serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* Animated sky background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: 
+      radial-gradient(ellipse at 20% 10%, rgba(212, 168, 83, 0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, rgba(61, 107, 79, 0.1) 0%, transparent 50%),
+      linear-gradient(170deg, #0d1b2a 0%, #1a2e44 40%, #0f2318 100%);
+    z-index: -1;
+  }
+
+  /* Stars */
+  .stars {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+  }
+  .star {
+    position: absolute;
+    width: 2px; height: 2px;
+    background: rgba(255,255,255,0.6);
+    border-radius: 50%;
+    animation: twinkle 3s infinite alternate;
+  }
+
+  @keyframes twinkle {
+    0% { opacity: 0.3; transform: scale(1); }
+    100% { opacity: 1; transform: scale(1.4); }
+  }
+
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 30px 20px 60px;
+  }
+
+  header {
+    text-align: center;
+    padding: 40px 0 30px;
+    position: relative;
+  }
+
+  .title-bird {
+    font-size: 3rem;
+    display: block;
+    animation: fly 8s ease-in-out infinite;
+  }
+
+  @keyframes fly {
+    0%, 100% { transform: translateY(0) rotate(-2deg); }
+    50% { transform: translateY(-12px) rotate(2deg); }
+  }
+
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2.2rem, 6vw, 3.5rem);
+    font-weight: 900;
+    color: var(--dawn);
+    letter-spacing: 0.03em;
+    line-height: 1;
+    text-shadow: 0 0 40px rgba(212,168,83,0.3);
+  }
+
+  h1 span {
+    display: block;
+    font-size: 0.45em;
+    font-weight: 300;
+    font-style: italic;
+    color: var(--leaf2);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  /* Score bar */
+  .scorebar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(212,168,83,0.2);
+    border-radius: 4px;
+    padding: 12px 24px;
+    margin: 20px 0 30px;
+    backdrop-filter: blur(4px);
+  }
+
+  .score-item {
+    text-align: center;
+  }
+
+  .score-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--leaf2);
+    display: block;
+  }
+
+  .score-value {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.8rem;
+    color: var(--gold);
+    font-weight: 700;
+    transition: all 0.3s;
+  }
+
+  .score-value.bump {
+    animation: bump 0.4s ease;
+  }
+
+  @keyframes bump {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.4); color: #fff; }
+    100% { transform: scale(1); }
+  }
+
+  /* Quiz card */
+  .quiz-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(212,168,83,0.15);
+    border-radius: 8px;
+    overflow: hidden;
+    animation: cardIn 0.5s ease;
+  }
+
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .bird-display {
+    position: relative;
+    text-align: center;
+    padding: 50px 20px 30px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.2) 0%, transparent 100%);
+    border-bottom: 1px solid rgba(212,168,83,0.1);
+  }
+
+  .bird-emoji {
+    font-size: 7rem;
+    display: block;
+    filter: drop-shadow(0 10px 30px rgba(0,0,0,0.5));
+    animation: birdBob 3s ease-in-out infinite;
+    cursor: default;
+    user-select: none;
+  }
+
+  @keyframes birdBob {
+    0%, 100% { transform: translateY(0) scaleX(1); }
+    25% { transform: translateY(-8px) scaleX(1); }
+    50% { transform: translateY(0) scaleX(1); }
+    75% { transform: translateY(-4px) scaleX(-1); }
+  }
+
+  .question-text {
+    font-size: 1.3rem;
+    font-style: italic;
+    color: rgba(245,237,216,0.7);
+    margin-top: 16px;
+    letter-spacing: 0.02em;
+  }
+
+  .question-number {
+    position: absolute;
+    top: 16px;
+    right: 20px;
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(90,158,114,0.7);
+  }
+
+  /* Options */
+  .options-grid {
+    padding: 24px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  @media (max-width: 500px) {
+    .options-grid { grid-template-columns: 1fr; }
+  }
+
+  .option-btn {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(212,168,83,0.2);
+    border-radius: 4px;
+    padding: 16px 20px;
+    color: var(--cream);
+    font-family: 'Crimson Pro', serif;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+    position: relative;
+    overflow: hidden;
+    letter-spacing: 0.01em;
+  }
+
+  .option-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(212,168,83,0.05));
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .option-btn:hover:not(:disabled)::before { opacity: 1; }
+  .option-btn:hover:not(:disabled) {
+    border-color: var(--gold);
+    color: var(--dawn);
+    transform: translateX(4px);
+  }
+
+  .option-btn.correct {
+    background: rgba(61,107,79,0.4);
+    border-color: var(--leaf2);
+    color: #a8f0b8;
+    animation: correctFlash 0.5s ease;
+  }
+
+  @keyframes correctFlash {
+    0% { background: rgba(61,107,79,0.1); }
+    50% { background: rgba(61,107,79,0.7); box-shadow: 0 0 20px rgba(90,158,114,0.4); }
+    100% { background: rgba(61,107,79,0.4); }
+  }
+
+  .option-btn.wrong {
+    background: rgba(192,57,43,0.3);
+    border-color: #e74c3c;
+    color: #ffaaaa;
+    animation: wrongShake 0.4s ease;
+  }
+
+  @keyframes wrongShake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+
+  .option-btn:disabled { cursor: default; transform: none; }
+
+  .option-letter {
+    font-family: 'Playfair Display', serif;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--gold);
+    opacity: 0.7;
+    margin-right: 8px;
+  }
+
+  /* Feedback */
+  .feedback {
+    text-align: center;
+    padding: 16px 24px 24px;
+    font-size: 1.15rem;
+    min-height: 60px;
+    transition: all 0.3s;
+  }
+
+  .feedback.show-correct {
+    color: #a8f0b8;
+  }
+  .feedback.show-wrong {
+    color: #ffaaaa;
+  }
+
+  /* Fun fact */
+  .fun-fact {
+    background: rgba(61,107,79,0.15);
+    border-left: 3px solid var(--leaf2);
+    padding: 12px 20px;
+    margin: 0 24px 20px;
+    border-radius: 0 4px 4px 0;
+    font-style: italic;
+    color: rgba(245,237,216,0.7);
+    font-size: 0.95rem;
+    display: none;
+  }
+
+  .fun-fact.visible { display: block; animation: fadeIn 0.4s ease; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .next-btn {
+    display: block;
+    margin: 0 24px 24px;
+    width: calc(100% - 48px);
+    padding: 14px;
+    background: linear-gradient(135deg, var(--leaf) 0%, var(--leaf2) 100%);
+    border: none;
+    border-radius: 4px;
+    color: #fff;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: none;
+  }
+
+  .next-btn.visible {
+    display: block;
+    animation: fadeIn 0.3s ease;
+  }
+
+  .next-btn:hover {
+    background: linear-gradient(135deg, var(--leaf2) 0%, #7dcb94 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(61,107,79,0.4);
+  }
+
+  /* Game Over */
+  .gameover {
+    text-align: center;
+    padding: 50px 30px;
+    display: none;
+  }
+
+  .gameover.visible { display: block; animation: cardIn 0.6s ease; }
+
+  .gameover-bird { font-size: 5rem; display: block; margin-bottom: 20px; }
+
+  .gameover h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.5rem;
+    color: var(--dawn);
+    margin-bottom: 8px;
+  }
+
+  .final-score-display {
+    font-family: 'Playfair Display', serif;
+    font-size: 4rem;
+    color: var(--gold);
+    font-weight: 900;
+    text-shadow: 0 0 30px rgba(212,168,83,0.5);
+    margin: 16px 0;
+  }
+
+  .gameover p {
+    color: rgba(245,237,216,0.6);
+    font-style: italic;
+    margin-bottom: 30px;
+    font-size: 1.1rem;
+  }
+
+  .restart-btn {
+    display: inline-block;
+    padding: 14px 40px;
+    background: linear-gradient(135deg, var(--bark) 0%, var(--gold) 100%);
+    border: none;
+    border-radius: 4px;
+    color: var(--sky);
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .restart-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(212,168,83,0.3);
+  }
+
+  /* Highscore */
+  .highscore-panel {
+    margin-top: 30px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(212,168,83,0.15);
+    border-radius: 8px;
+    padding: 20px 24px;
+  }
+
+  .highscore-panel h3 {
+    font-family: 'Playfair Display', serif;
+    color: var(--gold);
+    font-size: 1.1rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .hs-list { list-style: none; }
+
+  .hs-list li {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    font-size: 1rem;
+    color: rgba(245,237,216,0.7);
+  }
+
+  .hs-list li:last-child { border-bottom: none; }
+
+  .hs-rank {
+    font-family: 'Playfair Display', serif;
+    color: var(--gold);
+    opacity: 0.5;
+    font-size: 0.85rem;
+    width: 24px;
+  }
+
+  .hs-pts {
+    font-family: 'Playfair Display', serif;
+    color: var(--leaf2);
+    font-weight: 700;
+  }
+
+  .hs-new {
+    color: var(--gold);
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    background: rgba(212,168,83,0.15);
+    padding: 2px 6px;
+    border-radius: 2px;
+  }
+
+  .progress-bar {
+    height: 3px;
+    background: rgba(255,255,255,0.05);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--leaf), var(--gold));
+    transition: width 0.6s ease;
+  }
+
+  .lives {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .life { font-size: 1.2rem; transition: all 0.3s; }
+  .life.lost { opacity: 0.15; filter: grayscale(1); transform: scale(0.8); }
+
+  .streak {
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    color: var(--gold);
+    text-transform: uppercase;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .streak.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="stars" id="stars"></div>
+
+<div class="container">
+  <header>
+    <span class="title-bird">🦅</span>
+    <h1>Fuglequiz<span>Kjenner du fuglene?</span></h1>
+  </header>
+
+  <div class="scorebar">
+    <div class="score-item">
+      <span class="score-label">Poeng</span>
+      <span class="score-value" id="scoreDisplay">0</span>
+    </div>
+    <div class="score-item lives" id="livesDisplay">
+      <span class="life" id="l1">❤️</span>
+      <span class="life" id="l2">❤️</span>
+      <span class="life" id="l3">❤️</span>
+    </div>
+    <div class="score-item">
+      <span class="score-label">Rekke</span>
+      <span class="score-value streak" id="streakDisplay">0</span>
+    </div>
+  </div>
+
+  <!-- Quiz card -->
+  <div class="quiz-card" id="quizCard">
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill" style="width:0%"></div>
+    </div>
+    <div class="bird-display">
+      <span class="question-number" id="questionNum">Spørsmål 1</span>
+      <span class="bird-emoji" id="birdEmoji">🐦</span>
+      <p class="question-text">Hvilken fugl er dette?</p>
+    </div>
+    <div class="options-grid" id="optionsGrid"></div>
+    <div class="fun-fact" id="funFact"></div>
+    <div class="feedback" id="feedback"></div>
+    <button class="next-btn" id="nextBtn" onclick="nextQuestion()">Neste fugl →</button>
+  </div>
+
+  <!-- Game Over -->
+  <div class="gameover" id="gameOver">
+    <span class="gameover-bird" id="gameOverBird">🦜</span>
+    <h2 id="gameOverTitle">Spillet er over!</h2>
+    <div class="final-score-display" id="finalScore">0</div>
+    <p id="gameOverMsg">Bra innsats! Prøv igjen og slå rekorden.</p>
+    <button class="restart-btn" onclick="startGame()">Prøv igjen</button>
+
+    <div class="highscore-panel">
+      <h3>🏆 Rekordliste</h3>
+      <ul class="hs-list" id="hsList"></ul>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---- DATA ----
+const birds = [
+  { emoji: "🦅", name: "Ørn", wrong: ["Hauk", "Falk", "Kite", "Glente"], fact: "Ørnen kan se 4–5 ganger skarpere enn et menneske!" },
+  { emoji: "🦆", name: "And", wrong: ["Gås", "Svane", "Skarv", "Hegre"], fact: "Ender sover med det ene øyet åpent for å holde vakt." },
+  { emoji: "🦚", name: "Påfugl", wrong: ["Fasian", "Kalkun", "Hane", "Emu"], fact: "Bare hannpåfuglen har den fargerike halefansen." },
+  { emoji: "🦜", name: "Papegøye", wrong: ["Kakadu", "Lori", "Tukan", "Ara"], fact: "Noen papegøyer kan leve over 80 år!" },
+  { emoji: "🦩", name: "Flamingo", wrong: ["Ibis", "Hegre", "Pelikan", "Stork"], fact: "Flamingoen er rosa fordi den spiser reker og alger med rødt pigment." },
+  { emoji: "🦉", name: "Ugle", wrong: ["Kattugle", "Snøugle", "Vandrefalk", "Lappugle"], fact: "Uglen kan dreie hodet 270 grader – nesten rundt!" },
+  { emoji: "🐧", name: "Pingvin", wrong: ["Alke", "Lomvi", "Skarv", "Pelikan"], fact: "Pingviner er de eneste fuglene som svømmer men ikke kan fly." },
+  { emoji: "🦢", name: "Svane", wrong: ["Gås", "And", "Pelikan", "Hegre"], fact: "Svaner er trofaste – de holder seg ofte til én partner livet ut." },
+  { emoji: "🐦‍⬛", name: "Kråke", wrong: ["Ravn", "Skjære", "Nøtteskrike", "Kaie"], fact: "Kråker regnes blant de smarteste fuglene og kan gjenkjenne menneskefjes." },
+  { emoji: "🦤", name: "Dodo", wrong: ["Kakapo", "Kiwi", "Strutsefugl", "Emu"], fact: "Dodo-fuglen ble utryddet av mennesker på bare 80 år etter oppdagelsen." },
+  { emoji: "🦃", name: "Kalkun", wrong: ["Fasian", "Perlehøne", "Hane", "Emu"], fact: "Kalkunen er Amerikas største flygende fugl (villfugl)." },
+  { emoji: "🦫", name: "Nattergal", wrong: ["Meise", "Spurv", "Robinfugl", "Lerke"], fact: "Nattergalens sang er en av de vakreste – hanner synger for å tiltrekke hunner." },
+  { emoji: "🐤", name: "Kylling", wrong: ["Vaktell", "Rapphøne", "Due", "Lerke"], fact: "Det finnes over 25 milliarder tamhøner i verden – flere enn noen annen fugleart." },
+  { emoji: "🦬", name: "Strutsen", wrong: ["Rhea", "Kasuaren", "Nandu", "Emu"], fact: "Strutsen er verdens største fugl og kan løpe opp til 70 km/t." },
+  { emoji: "🐓", name: "Hane", wrong: ["Kalkun", "Fasian", "Høne", "Perlehøne"], fact: "Hanens gal er et territoriesignal – han synger for å markere reviret." },
+];
+
+// ---- STATE ----
+let score = 0;
+let lives = 3;
+let streak = 0;
+let questionIndex = 0;
+let shuffledBirds = [];
+let answered = false;
+let highscores = [];
+
+// ---- INIT ----
+function makeStar(el) {
+  for (let i = 0; i < 80; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    s.style.cssText = `left:${Math.random()*100}%;top:${Math.random()*60}%;animation-delay:${Math.random()*4}s;animation-duration:${2+Math.random()*3}s;opacity:${0.2+Math.random()*0.8}`;
+    el.appendChild(s);
+  }
+}
+makeStar(document.getElementById('stars'));
+
+function loadHighscores() {
+  try { highscores = JSON.parse(localStorage.getItem('fuglequiz_hs') || '[]'); }
+  catch { highscores = []; }
+}
+
+function saveHighscore(pts) {
+  loadHighscores();
+  highscores.push({ pts, date: new Date().toLocaleDateString('no') });
+  highscores.sort((a,b) => b.pts - a.pts);
+  highscores = highscores.slice(0, 8);
+  try { localStorage.setItem('fuglequiz_hs', JSON.stringify(highscores)); } catch {}
+}
+
+function shuffle(arr) {
+  const a = [...arr]; for (let i = a.length-1; i > 0; i--) {
+    const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]] = [a[j],a[i]];
+  } return a;
+}
+
+// ---- START ----
+function startGame() {
+  score = 0; lives = 3; streak = 0; questionIndex = 0; answered = false;
+  shuffledBirds = shuffle(birds);
+  document.getElementById('gameOver').classList.remove('visible');
+  document.getElementById('quizCard').style.display = '';
+  updateScore(); updateLives(); updateStreak();
+  renderQuestion();
+}
+
+// ---- RENDER QUESTION ----
+function renderQuestion() {
+  if (questionIndex >= shuffledBirds.length) {
+    // Restart the deck
+    questionIndex = 0;
+    shuffledBirds = shuffle(birds);
+  }
+
+  answered = false;
+  const bird = shuffledBirds[questionIndex];
+  document.getElementById('birdEmoji').textContent = bird.emoji;
+  document.getElementById('questionNum').textContent = `Spørsmål ${questionIndex + 1}`;
+  document.getElementById('progressFill').style.width = `${((questionIndex) / shuffledBirds.length)*100}%`;
+
+  // Build options
+  const wrongPool = shuffle(bird.wrong).slice(0, 4);
+  const options = shuffle([bird.name, ...wrongPool]);
+
+  const grid = document.getElementById('optionsGrid');
+  grid.innerHTML = '';
+  const letters = ['A','B','C','D','E'];
+  options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.innerHTML = `<span class="option-letter">${letters[i]}.</span>${opt}`;
+    btn.onclick = () => handleAnswer(btn, opt, bird);
+    grid.appendChild(btn);
+  });
+
+  document.getElementById('feedback').textContent = '';
+  document.getElementById('feedback').className = 'feedback';
+  document.getElementById('funFact').textContent = '';
+  document.getElementById('funFact').classList.remove('visible');
+  document.getElementById('nextBtn').classList.remove('visible');
+  document.getElementById('quizCard').style.animation = 'none';
+  requestAnimationFrame(() => { document.getElementById('quizCard').style.animation = ''; });
+}
+
+// ---- ANSWER ----
+function handleAnswer(btn, chosen, bird) {
+  if (answered) return;
+  answered = true;
+
+  const correct = chosen === bird.name;
+  const btns = document.querySelectorAll('.option-btn');
+  btns.forEach(b => {
+    b.disabled = true;
+    if (b.textContent.includes(bird.name)) b.classList.add('correct');
+  });
+
+  const feedback = document.getElementById('feedback');
+  const funFact = document.getElementById('funFact');
+
+  if (correct) {
+    btn.classList.add('correct');
+    const bonus = streak >= 2 ? 5 : 0;
+    const gained = 10 + bonus;
+    score += gained;
+    streak++;
+    feedback.textContent = streak >= 2 ? `✓ Riktig! +${gained} poeng (${streak}x rekke! +${bonus} bonus)` : `✓ Riktig! +${gained} poeng`;
+    feedback.className = 'feedback show-correct';
+  } else {
+    btn.classList.add('wrong');
+    lives--;
+    streak = 0;
+    feedback.textContent = `✗ Feil! Det var ${bird.name}. −1 liv`;
+    feedback.className = 'feedback show-wrong';
+    updateLives();
+
+    if (lives <= 0) {
+      setTimeout(showGameOver, 1200);
+      funFact.textContent = `🪶 Visste du? ${bird.fact}`;
+      funFact.classList.add('visible');
+      return;
+    }
+  }
+
+  updateScore();
+  updateStreak();
+
+  funFact.textContent = `🪶 Visste du? ${bird.fact}`;
+  funFact.classList.add('visible');
+  document.getElementById('nextBtn').classList.add('visible');
+}
+
+function nextQuestion() {
+  questionIndex++;
+  renderQuestion();
+}
+
+// ---- GAME OVER ----
+function showGameOver() {
+  document.getElementById('quizCard').style.display = 'none';
+  const go = document.getElementById('gameOver');
+  go.classList.add('visible');
+  document.getElementById('finalScore').textContent = score + ' p';
+
+  const msgs = [
+    [0, 30, "Prøv igjen! Fuglene er krevende 🐣"],
+    [30, 80, "Bra forsøk! Du lærer fort 🐦"],
+    [80, 150, "Godt gjort! Du er en fuglevenn 🦅"],
+    [150, 300, "Imponerende! Ornitolog-materiell 🦆"],
+    [300, Infinity, "Legendarisk! Verdens beste fuglepasser 🏆"]
+  ];
+  const msg = msgs.find(([lo, hi]) => score >= lo && score < hi);
+  document.getElementById('gameOverMsg').textContent = msg ? msg[2] : '';
+
+  const endings = ["🦜","🦅","🦚","🐧","🦉"];
+  document.getElementById('gameOverBird').textContent = endings[Math.floor(Math.random()*endings.length)];
+
+  saveHighscore(score);
+  renderHighscores();
+}
+
+function renderHighscores() {
+  loadHighscores();
+  const list = document.getElementById('hsList');
+  list.innerHTML = '';
+  if (!highscores.length) {
+    list.innerHTML = '<li style="justify-content:center;color:rgba(245,237,216,0.3);font-style:italic">Ingen rekorder ennå</li>';
+    return;
+  }
+  highscores.forEach((h, i) => {
+    const isNew = i === 0 && h.pts === score;
+    list.innerHTML += `<li>
+      <span class="hs-rank">#${i+1}</span>
+      <span>${h.date}</span>
+      <span class="hs-pts">${h.pts} p</span>
+      ${isNew ? '<span class="hs-new">Ny!</span>' : ''}
+    </li>`;
+  });
+}
+
+// ---- UI UPDATES ----
+function updateScore() {
+  const el = document.getElementById('scoreDisplay');
+  el.textContent = score;
+  el.classList.remove('bump');
+  void el.offsetWidth;
+  el.classList.add('bump');
+}
+
+function updateLives() {
+  ['l1','l2','l3'].forEach((id, i) => {
+    document.getElementById(id).classList.toggle('lost', i >= lives);
+  });
+}
+
+function updateStreak() {
+  const el = document.getElementById('streakDisplay');
+  el.textContent = streak;
+  el.classList.toggle('show', streak >= 2);
+  document.querySelector('.score-label:last-of-type');
+}
+
+// ---- START ----
+loadHighscores();
+startGame();
+</script>
+</body>
+</html>
